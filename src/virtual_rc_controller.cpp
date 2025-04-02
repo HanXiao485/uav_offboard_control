@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
         ("mavros/set_mode");
 
     // 控制频率20Hz
-    ros::Rate rate(50.0);
+    ros::Rate rate(20.0);
 
     // 等待飞控连接
     while(ros::ok() && !current_state.connected) {
@@ -41,11 +41,11 @@ int main(int argc, char **argv) {
     // 初始化姿态目标消息
     mavros_msgs::AttitudeTarget attitude_cmd;
     attitude_cmd.type_mask = 0;  // 全量控制
-    attitude_cmd.thrust = 0.5;   // 初始推力50%
+    attitude_cmd.thrust = 0.01;   // 初始推力50%
 
     // 创建四元数（示例：绕Y轴倾斜30度）
     tf2::Quaternion q;
-    q.setRPY(0.0, 0.5236, 0.0); // Roll=0°, Pitch=30°, Yaw=0°
+    q.setRPY(0.0, 0.0, 0.0); // Roll=0°, Pitch=30°, Yaw=0°
     attitude_cmd.orientation.x = q.x();
     attitude_cmd.orientation.y = q.y();
     attitude_cmd.orientation.z = q.z();
@@ -57,6 +57,7 @@ int main(int argc, char **argv) {
         ros::spinOnce();
         rate.sleep();
     }
+    ROS_INFO("3");
 
     // 设置Offboard模式
     mavros_msgs::SetMode offb_set_mode;

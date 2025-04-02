@@ -137,12 +137,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(keyboard_control 
-  src/keyboard_control.cpp
-  src/keyboard_handler.cpp
-  # src/virtual_rc_controller.cpp
-)
-add_executable(virtual_rc_controller 
+add_executable(offboard_controller 
   # src/keyboard_control.cpp
   # src/keyboard_handler.cpp
   src/virtual_rc_controller.cpp
@@ -159,10 +154,7 @@ add_executable(virtual_rc_controller
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(keyboard_control
-  ${catkin_LIBRARIES}
-)
-target_link_libraries(virtual_rc_controller
+target_link_libraries(offboard_controller
   ${catkin_LIBRARIES}
 )
 

@@ -2,9 +2,6 @@
     <node pkg="mavros" type="mavros_node" name="mavros" 
         args="--fcu-url /dev/ttyTHS1:921600" />
         
-    <!-- <node pkg="uav_keyboard_control" type="keyboard_control" 
-        name="keyboard_control" output="screen"/> -->
-        
-    <node pkg="uav_keyboard_control" type="offboard_controller" name="rc_keyboard_control" 
+    <node pkg="uav_keyboard_control" type="offboard_controller" name="offboard_controller" 
         output="screen"/>
 </launch>
