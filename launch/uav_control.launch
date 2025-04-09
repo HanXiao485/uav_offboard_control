@@ -4,4 +4,10 @@
         
     <node pkg="uav_keyboard_control" type="offboard_controller" name="offboard_controller" 
         output="screen"/>
+
+    <node pkg="uav_keyboard_control" type="drone_data_publisher" name="drone_data_publisher"
+        output="screen"/>
+
+    <node pkg="uav_keyboard_control" type="drone_data_subscriber" name="drone_data_subscriber"
+        output="screen"/>
 </launch>

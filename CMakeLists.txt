@@ -12,6 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
   mavros_msgs
   roscpp
   sensor_msgs
+  message_generation
+  # tf2_geometry_msgs
+  # tf2_ros
 )
 
 add_compile_options(-std=c++17)
@@ -49,12 +52,11 @@ add_compile_options(-std=c++17)
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+# Generate messages in the 'msg' folder
+add_message_files(
+  FILES
+  DroneData30D.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -70,11 +72,12 @@ add_compile_options(-std=c++17)
 #   Action2.action
 # )
 
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   geometry_msgs#   mavros_msgs#   sensor_msgs
-# )
+# Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs #   mavros_msgs#   sensor_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -108,8 +111,9 @@ add_compile_options(-std=c++17)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES uav_keyboard_control
-#  CATKIN_DEPENDS geometry_msgs mavros_msgs roscpp sensor_msgs
+ CATKIN_DEPENDS geometry_msgs mavros_msgs roscpp sensor_msgs
 #  DEPENDS system_lib
+ message_runtime
 )
 
 ###########
@@ -142,6 +146,12 @@ add_executable(offboard_controller
   # src/keyboard_handler.cpp
   src/virtual_rc_controller.cpp
 )
+add_executable(drone_data_publisher
+  src/data_collect.cpp
+)
+add_executable(drone_data_subscriber 
+  src/subscriber_node.cpp
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -152,11 +162,24 @@ add_executable(offboard_controller
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(drone_data_publisher 
+    uav_keyboard_control_generate_messages_cpp)
+
+add_dependencies(drone_data_subscriber 
+    uav_keyboard_control_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(offboard_controller
   ${catkin_LIBRARIES}
 )
+target_link_libraries(drone_data_publisher
+  ${catkin_LIBRARIES}
+  # tf2_geometry_msgs
+)
+target_link_libraries(drone_data_subscriber 
+  ${catkin_LIBRARIES}
+)
+
 
 #############
 ## Install ##
@@ -171,6 +194,9 @@ target_link_libraries(offboard_controller
 #   scripts/my_python_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
+
+catkin_install_python(PROGRAMS scripts/actor.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
