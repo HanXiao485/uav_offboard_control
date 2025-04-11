@@ -2,6 +2,9 @@
 import rospy
 from uav_keyboard_control.msg import DroneData30D  # 导入自定义消息类型
 # from mavros_msgs import State
+from sensor_msgs.msg import Imu
+from 
+import numpy as np
 import os
 import sys
 import torch
@@ -18,29 +21,53 @@ class DataSubscriber:
                                    DroneData30D, 
                                    self.data_callback,
                                    queue_size=10)
+        self.sub_imu = rospy.Subscriber("/mavros/imu/data",
+                                        Imu,
+                                        self.data_callback,
+                                        queue_size=10)
+                                                                         
         # self.pub = rospy.Publisher("/drone_control_4d",
         #                            State,
         #                            queue_size=10)
         rospy.loginfo("Subscriber initialized")
 
     def data_callback(self, msg):
-        # """处理无人机数据回调函数"""
-        # # 解析相对位置
-        # rospy.loginfo("\nRelative Position [x:%.2f, y:%.2f, z:%.2f]", 
-        #              msg.rpos.x, msg.rpos.y, msg.rpos.z)
+        """处理无人机数据回调函数"""
+        # 解析相对位置
+        rospy.loginfo("\nRelative Position [x:%.2f, y:%.2f, z:%.2f]", 
+                     msg.rpos.x, msg.rpos.y, msg.rpos.z)
         
-        # # 解析drone_state数组
-        # if len(msg.drone_state) >= 6:
-        #     rospy.loginfo("Linear Velocity [x:%.2f, y:%.2f, z:%.2f]\n"
-        #                  "Angular Velocity [x:%.2f, y:%.2f, z:%.2f]", 
-        #                  msg.drone_state[0], msg.drone_state[1], msg.drone_state[2],
-        #                  msg.drone_state[3], msg.drone_state[4], msg.drone_state[5])
-        # else:
-        #     rospy.logwarn("Incomplete drone_state data received (size=%d)", 
-        #                  len(msg.drone_state))
+        # 解析drone_state数组
+        if len(msg.drone_state) >= 6:
+            rospy.loginfo("Linear Velocity [x:%.2f, y:%.2f, z:%.2f]\n"
+                         "Angular Velocity [x:%.2f, y:%.2f, z:%.2f]", 
+                         msg.drone_state[0], msg.drone_state[1], msg.drone_state[2],
+                         msg.drone_state[3], msg.drone_state[4], msg.drone_state[5])
+        else:
+            rospy.logwarn("Incomplete drone_state data received (size=%d)", 
+                         len(msg.drone_state))
             
-        # states = [0.0] * 30    
-        # input_tensor = torch.tensor(states, dtype=torch.float).view(30).to(device)
+        relative_position = torch.tensor([
+            msg.rpos.x, 
+            msg.rpos.y, 
+            msg.rpos.z
+            ])
+        
+        if len(msg.drone_state) >= 6:
+            velocities = torch.tensor([
+                msg.drone_state[0],  # linear velocity x
+                msg.drone_state[1],  # linear velocity y
+                msg.drone_state[2],  # linear velocity z
+                msg.drone_state[3],  # angular velocity x
+                msg.drone_state[4],  # angular velocity y
+                msg.drone_state[5],  # angular velocity z
+            ])
+        else:
+            velocities = torch.zeros(6)
+            rospy.logwarn("Incomplete drone_state data received (size=%d)",len(msg.drone_state))
+            
+        drone_data_tensor = torch.cat([relative_position, velocities])
+            
         input_tensor = torch.tensor([0.0] * 30, dtype=torch.float).view(1, 30).to(device)
         
         tensordict = TensorDict({
