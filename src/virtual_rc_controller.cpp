@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     // 初始化姿态目标消息
     mavros_msgs::AttitudeTarget attitude_cmd;
     attitude_cmd.type_mask = 0;  // 全量控制
-    attitude_cmd.thrust = 0.01;   // 初始推力50%
+    attitude_cmd.thrust = 0.3;   // 初始推力50%
 
     // 创建四元数（示例：绕Y轴倾斜30度）
     tf2::Quaternion q;

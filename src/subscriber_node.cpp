@@ -18,15 +18,15 @@ public:
         ROS_INFO("Relative Position [x:%.2f, y:%.2f, z:%.2f]", 
                 msg->rpos.x, msg->rpos.y, msg->rpos.z);
 
-        // 解析drone_state数组（需确保数组长度正确）
-        if(msg->drone_state.size() >= 6) {
-            ROS_INFO("Linear Velocity [x:%.2f, y:%.2f, z:%.2f]", 
-                    msg->drone_state[0], msg->drone_state[1], msg->drone_state[2]);
-            ROS_INFO("Angular Velocity [x:%.2f, y:%.2f, z:%.2f]",
-                    msg->drone_state[3], msg->drone_state[4], msg->drone_state[5]);
-        } else {
-            ROS_WARN("Incomplete drone_state data received");
-        }
+        // // 解析drone_state数组（需确保数组长度正确）
+        // if(msg->drone_state.size() >= 6) {
+        //     ROS_INFO("Linear Velocity [x:%.2f, y:%.2f, z:%.2f]", 
+        //             msg->drone_state[0], msg->drone_state[1], msg->drone_state[2]);
+        //     ROS_INFO("Angular Velocity [x:%.2f, y:%.2f, z:%.2f]",
+        //             msg->drone_state[3], msg->drone_state[4], msg->drone_state[5]);
+        // } else {
+        //     ROS_WARN("Incomplete drone_state data received");
+        // }
     }
 };
 

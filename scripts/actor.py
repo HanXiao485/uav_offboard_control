@@ -3,7 +3,6 @@ import rospy
 from uav_keyboard_control.msg import DroneData30D  # 导入自定义消息类型
 # from mavros_msgs import State
 from sensor_msgs.msg import Imu
-from 
 import numpy as np
 import os
 import sys
@@ -47,25 +46,28 @@ class DataSubscriber:
             rospy.logwarn("Incomplete drone_state data received (size=%d)", 
                          len(msg.drone_state))
             
+        orientation = torch.tensor([
+            msg.orientation_x,
+            msg.orientation_y,
+            msg.orientation_z,
+            msg.orientation_w
+        ])
+            
         relative_position = torch.tensor([
             msg.rpos.x, 
             msg.rpos.y, 
             msg.rpos.z
-            ])
+        ])
         
-        if len(msg.drone_state) >= 6:
-            velocities = torch.tensor([
-                msg.drone_state[0],  # linear velocity x
-                msg.drone_state[1],  # linear velocity y
-                msg.drone_state[2],  # linear velocity z
-                msg.drone_state[3],  # angular velocity x
-                msg.drone_state[4],  # angular velocity y
-                msg.drone_state[5],  # angular velocity z
-            ])
-        else:
-            velocities = torch.zeros(6)
-            rospy.logwarn("Incomplete drone_state data received (size=%d)",len(msg.drone_state))
-            
+        velocities = torch.tensor([
+            msg.drone_state[0],  # linear velocity x
+            msg.drone_state[1],  # linear velocity y
+            msg.drone_state[2],  # linear velocity z
+            msg.angular_velocity_x,  # angular velocity x
+            msg.angular_velocity_y,  # angular velocity y
+            msg.angular_velocity_z,  # angular velocity z
+        ])
+        
         drone_data_tensor = torch.cat([relative_position, velocities])
             
         input_tensor = torch.tensor([0.0] * 30, dtype=torch.float).view(1, 30).to(device)
