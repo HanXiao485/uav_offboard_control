@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-from uav_keyboard_control.msg import DroneData30D  # 导入自定义消息类型
+from uav_keyboard_control.msg import DroneData30D, RateThrust  # 导入自定义消息类型
 # from mavros_msgs import State
 from sensor_msgs.msg import Imu
 import numpy as np
@@ -20,31 +20,17 @@ class DataSubscriber:
                                    DroneData30D, 
                                    self.data_callback,
                                    queue_size=10)
-        self.sub_imu = rospy.Subscriber("/mavros/imu/data",
-                                        Imu,
-                                        self.data_callback,
-                                        queue_size=10)
+        self.pub_control = rospy.Publisher('/drone_control', 
+                                          RateThrust, 
+                                          queue_size=10)
                                                                          
-        # self.pub = rospy.Publisher("/drone_control_4d",
-        #                            State,
-        #                            queue_size=10)
         rospy.loginfo("Subscriber initialized")
 
     def data_callback(self, msg):
         """处理无人机数据回调函数"""
         # 解析相对位置
-        rospy.loginfo("\nRelative Position [x:%.2f, y:%.2f, z:%.2f]", 
-                     msg.rpos.x, msg.rpos.y, msg.rpos.z)
-        
-        # 解析drone_state数组
-        if len(msg.drone_state) >= 6:
-            rospy.loginfo("Linear Velocity [x:%.2f, y:%.2f, z:%.2f]\n"
-                         "Angular Velocity [x:%.2f, y:%.2f, z:%.2f]", 
-                         msg.drone_state[0], msg.drone_state[1], msg.drone_state[2],
-                         msg.drone_state[3], msg.drone_state[4], msg.drone_state[5])
-        else:
-            rospy.logwarn("Incomplete drone_state data received (size=%d)", 
-                         len(msg.drone_state))
+        # rospy.loginfo("\nRelative Position [x:%.2f, y:%.2f, z:%.2f]", 
+        #              msg.rpos.x, msg.rpos.y, msg.rpos.z)
             
         orientation = torch.tensor([
             msg.orientation_x,
@@ -60,17 +46,55 @@ class DataSubscriber:
         ])
         
         velocities = torch.tensor([
-            msg.drone_state[0],  # linear velocity x
-            msg.drone_state[1],  # linear velocity y
-            msg.drone_state[2],  # linear velocity z
-            msg.angular_velocity_x,  # angular velocity x
-            msg.angular_velocity_y,  # angular velocity y
-            msg.angular_velocity_z,  # angular velocity z
+            msg.linear_velocity.x,  # linear velocity x
+            msg.linear_velocity.y,  # linear velocity y
+            msg.linear_velocity.z,  # linear velocity z
+            msg.angular_velocity.x,  # angular velocity x
+            msg.angular_velocity.y,  # angular velocity y
+            msg.angular_velocity.z,  # angular velocity z
         ])
         
-        drone_data_tensor = torch.cat([relative_position, velocities])
+        heading = torch.tensor([
+            msg.heading.x,
+            msg.heading.y,
+            msg.heading.z
+        ])
+        
+        up = torch.tensor([
+            msg.up.x,
+            msg.up.y,
+            msg.up.z
+        ])
+        
+        rheading = torch.tensor([
+            msg.rheading.x,
+            msg.rheading.y,
+            msg.rheading.z
+        ])
+        
+        throttle = torch.tensor([
+            1.0, 0.0, 0.0, 0.0
+        ])
+        
+        time_enconding = torch.tensor([
+            0.0, 0.0, 0.0, 0.0
+        ])
+        
+        drone_data_tensor = torch.cat([
+            relative_position, 
+            orientation, 
+            velocities, 
+            throttle,
+            heading, 
+            up,
+            rheading,
+        ])
+        
+        # print(drone_data_tensor)
             
-        input_tensor = torch.tensor([0.0] * 30, dtype=torch.float).view(1, 30).to(device)
+        # input_tensor = torch.tensor([0.0] * 30, dtype=torch.float).view(1, 30).to(device)
+        
+        input_tensor = drone_data_tensor.view(1, 26).to(device)
         
         tensordict = TensorDict({
             # agents 字段下的 observation，需增加一维使形状为 [batch, 1, 36]
@@ -118,9 +142,25 @@ class DataSubscriber:
             output = model(tensordict)  # 输入 TensorDict
             action = output["agents"]["action"]
             target_rate, target_thrust = action.split([3, 1], -1)
-            target_thrust = ((target_thrust + 1) / 2).clip(0.) * 24.0128  # max_thrust
-            print(target_rate)
-            print(target_thrust)
+            # target_thrust = ((target_thrust + 1) / 2).clip(0.) * 24.0128  # max_thrust
+            
+            # 创建合并消息对象（核心修改）
+            control_msg = RateThrust()
+            control_msg.rate_x = target_rate[..., 0].item()
+            control_msg.rate_y = target_rate[..., 1].item()
+            control_msg.rate_z = target_rate[..., 2].item()
+            control_msg.thrust = target_thrust.squeeze().item()
+            
+            self.pub_control.publish(control_msg)
+            
+            # rate_x = target_rate[..., 0].item()  # 提取第1个维度的值
+            # rate_y = target_rate[..., 1].item()  # 提取第2个维度的值
+            # rate_z = target_rate[..., 2].item()  # 提取第3个维度的值
+            # thrust = target_thrust.squeeze().item()  # 去除多余维度后提取标量
+            
+            
+            # print(target_rate)
+            # print(target_thrust)
 
 if __name__ == '__main__':
     
@@ -136,7 +176,7 @@ if __name__ == '__main__':
     
     # 导入模型
     device = torch.device("cpu")
-    model = torch.load('/home/nv/rl_control_uav/src/uav_keyboard_control/scripts/checkpoint_final_20250325_hover_rate_controller.pt', map_location=torch.device('cpu'))
+    model = torch.load('/home/nv/rl_control_uav/src/uav_keyboard_control/scripts/checkpoint_final_20250416_hover_no-time-encoding.pt', map_location=torch.device('cpu'))
     model.eval()
     
     try:

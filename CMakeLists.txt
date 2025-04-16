@@ -56,6 +56,7 @@ add_compile_options(-std=c++17)
 add_message_files(
   FILES
   DroneData30D.msg
+  RateThrust.msg
 )
 
 ## Generate services in the 'srv' folder

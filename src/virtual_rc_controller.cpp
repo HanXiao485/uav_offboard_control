@@ -4,11 +4,29 @@
 #include <mavros_msgs/State.h>
 #include <mavros_msgs/AttitudeTarget.h>
 #include <geometry_msgs/Quaternion.h>
+#include <uav_keyboard_control/RateThrust.h>
 #include <tf2/LinearMath/Quaternion.h>
 
 mavros_msgs::State current_state;
+uav_keyboard_control::RateThrust drone_control;
+mavros_msgs::AttitudeTarget attitude_cmd;
 void state_cb(const mavros_msgs::State::ConstPtr& msg) {
     current_state = *msg;
+}
+void drone_control_cb(const uav_keyboard_control::RateThrust::ConstPtr& msg) {
+    drone_control = *msg;
+    attitude_cmd.thrust = msg->thrust/5;
+
+    // 创建四元数（示例：绕Y轴倾斜30度）
+    tf2::Quaternion q;
+    q.setRPY(msg->rate_x, msg->rate_y, msg->rate_z); // Roll=0°, Pitch=30°, Yaw=0°
+    attitude_cmd.orientation.x = q.x()/5;
+    attitude_cmd.orientation.y = q.y()/5;
+    attitude_cmd.orientation.z = q.z()/5;
+    attitude_cmd.orientation.w = q.w()/5;
+    // ROS_INFO("Received control command: rate_x=%.2f, rate_y=%.2f, rate_z=%.2f, thrust=%.2f", 
+    //          msg->rate_x, msg->rate_y, msg->rate_z, msg->thrust);
+
 }
 
 int main(int argc, char **argv) {
@@ -18,6 +36,9 @@ int main(int argc, char **argv) {
     // 订阅MAVROS状态
     ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>
         ("mavros/state", 10, state_cb);
+    
+    ros::Subscriber drone_control = nh.subscribe<uav_keyboard_control::RateThrust>
+        ("/drone_control", 10, &drone_control_cb);
     
     // 发布姿态目标（包含推力）
     ros::Publisher attitude_pub = nh.advertise<mavros_msgs::AttitudeTarget>
@@ -38,18 +59,18 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
 
-    // 初始化姿态目标消息
-    mavros_msgs::AttitudeTarget attitude_cmd;
-    attitude_cmd.type_mask = 0;  // 全量控制
-    attitude_cmd.thrust = 0.3;   // 初始推力50%
+    // // 初始化姿态目标消息
+    // mavros_msgs::AttitudeTarget attitude_cmd;
+    // attitude_cmd.type_mask = 0;  // 全量控制
+    // attitude_cmd.thrust = 0.5;   // 初始推力50%
 
-    // 创建四元数（示例：绕Y轴倾斜30度）
-    tf2::Quaternion q;
-    q.setRPY(0.0, 0.0, 0.0); // Roll=0°, Pitch=30°, Yaw=0°
-    attitude_cmd.orientation.x = q.x();
-    attitude_cmd.orientation.y = q.y();
-    attitude_cmd.orientation.z = q.z();
-    attitude_cmd.orientation.w = q.w();
+    // // 创建四元数（示例：绕Y轴倾斜30度）
+    // tf2::Quaternion q;
+    // q.setRPY(0.0, 0.0, 0.0); // Roll=0°, Pitch=30°, Yaw=0°
+    // attitude_cmd.orientation.x = q.x();
+    // attitude_cmd.orientation.y = q.y();
+    // attitude_cmd.orientation.z = q.z();
+    // attitude_cmd.orientation.w = q.w();
 
     // 预发送设定点
     for(int i = 0; ros::ok() && i < 100; ++i){
